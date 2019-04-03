@@ -39,7 +39,40 @@ def my_team():
     return [ (9889132, 'Nok Hei Heidi', 'Cheng'), (10003665, 'Jayden', 'Dao'), (9796134, 'Vaibhav', Vachhani)]
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
+def surrounded_by_walls(walls, x_size, y_size, coord):
+    '''
+    left = (x-1, y)
+    right = (x+1, y)
+    top = (x, y-1)
+    down = x, y+1) 
+    example x,y = (2,2)
+    '''
+    (x, y) = coord
+    left = right = top = bottom = False
+    #finding left
+    for x1 in range(x-1, -1, -1):
+        if (x1, y) in walls:
+            left = True
+            break
+    #finding right
+    for x1 in range(x+1, x_size):
+        if (x1, y) in walls:
+            right = True
+            break
+    #finding top 
+    for y1 in range(y-1, -1, -1):
+        if (x, y1) in walls:
+            top = True
+            break
+    #finding bottom
+    for y1 in range(y+1, y_size):
+        if (x, y1) in walls:
+            bottom = True
+            break
+    if left == False or right == False or top == False or bottom == False:
+        return False
+    else:
+        return True
 
 def taboo_cells(warehouse):
     '''  
@@ -62,8 +95,38 @@ def taboo_cells(warehouse):
        The returned string should NOT have marks for the worker, the targets,
        and the boxes.  
     '''
-    ##         "INSERT YOUR CODE HERE"    
-    raise NotImplementedError()
+    ##         "INSERT YOUR CODE HERE"
+    walls_X, walls_Y = zip(*warehouse.walls)
+    x_size, y_size = 1+max(walls_X), 1+max(walls_Y)
+    # making a list of tuples with all coords
+    new_x = []
+    new_y = []
+    for i in range(y_size):
+        for j in range(x_size):
+            new_x.append(j)
+            new_y.append(i)
+    new_coords = list(zip(new_x, new_y))
+
+    # filtering out walls
+    for i in range(len(warehouse.walls)):
+        new_coords.remove(warehouse.walls[i])
+    
+    # filtering out outside map
+    walkable_coords = new_coords.copy()
+    for i in range(len(new_coords)):
+        if surrounded_by_walls(warehouse.walls, x_size, y_size, new_coords[i]) == False:
+            walkable_coords.remove(new_coords[i])
+            
+    #finding taboo coords
+    taboo_coords = []
+    
+    print(new_coords)
+    print(walkable_coords)
+
+    print(x_size)
+    print(y_size)
+    print(warehouse.walls)
+    print("alright")
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -103,7 +166,7 @@ class SokobanPuzzle(search.Problem):
 
     
     def __init__(self, warehouse):
-        raise NotImplementedError()
+        self.warehouse = warehouse
 
     def actions(self, state):
         """

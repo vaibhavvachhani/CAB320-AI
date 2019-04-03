@@ -74,6 +74,31 @@ def surrounded_by_walls(walls, x_size, y_size, coord):
     else:
         return True
 
+def number_of_walls_surrounded(walls, coord):
+    (x, y) = coord
+    number_of_walls = 0
+    if (x-1, y) in walls:
+        number_of_walls += 1
+    if (x+1, y) in walls:
+        number_of_walls += 1
+    if (x, y-1) in walls:
+        number_of_walls += 1
+    if (x, y+1) in walls:
+        number_of_walls += 1
+    return number_of_walls
+
+def walls_around(walls, coord):
+    (x, y) = coord
+    walls_around = []
+    if (x-1, y) in walls:
+        walls_around.append((x-1, y))
+    if (x+1, y) in walls:
+        walls_around.append((x+1, y))
+    if (x, y-1) in walls:
+        walls_around.append((x, y-1))
+    if (x, y+1) in walls:
+        walls_around.append((x, y+1))
+    return walls_around
 def taboo_cells(warehouse):
     '''  
     Identify the taboo cells of a warehouse. A cell inside a warehouse is 
@@ -96,7 +121,8 @@ def taboo_cells(warehouse):
        and the boxes.  
     '''
     ##         "INSERT YOUR CODE HERE"
-    walls_X, walls_Y = zip(*warehouse.walls)
+    walls = warehouse.walls
+    walls_X, walls_Y = zip(*walls)
     x_size, y_size = 1+max(walls_X), 1+max(walls_Y)
     # making a list of tuples with all coords
     new_x = []
@@ -108,25 +134,38 @@ def taboo_cells(warehouse):
     new_coords = list(zip(new_x, new_y))
 
     # filtering out walls
-    for i in range(len(warehouse.walls)):
-        new_coords.remove(warehouse.walls[i])
+    for i in range(len(walls)):
+        new_coords.remove(walls[i])
     
+    # filtering out targets
+    targets = warehouse.targets
+    for i in range(len(targets)):
+        new_coords.remove(targets[i])
+
     # filtering out outside map
     walkable_coords = new_coords.copy()
     for i in range(len(new_coords)):
-        if surrounded_by_walls(warehouse.walls, x_size, y_size, new_coords[i]) == False:
+        if surrounded_by_walls(walls, x_size, y_size, new_coords[i]) == False:
             walkable_coords.remove(new_coords[i])
             
     #finding taboo coords
     taboo_coords = []
-    
-    print(new_coords)
-    print(walkable_coords)
+    for i in range(len(walkable_coords)):
+        number_of_walls = number_of_walls_surrounded(walls, walkable_coords[i])
+        if number_of_walls > 2:
+            taboo_coords.append(walkable_coords[i])
+        elif number_of_walls == 2:
+            walls_around_list = walls_around(walls, walkable_coords[i])
+            if walls_around_list[0][0] != walls_around_list[1][0] and walls_around_list[0][1] != walls_around_list[1][1]:
+                taboo_coords.append(walkable_coords[i])
 
-    print(x_size)
-    print(y_size)
-    print(warehouse.walls)
-    print("alright")
+    # putting everything in output
+    output = [[" "] * x_size for y in range(y_size)]
+    for (x,y) in walls:
+           output[y][x] = "#"
+    for (x,y) in taboo_coords:
+           output[y][x] = "X"
+    return "\n".join(["".join(line) for line in output])
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

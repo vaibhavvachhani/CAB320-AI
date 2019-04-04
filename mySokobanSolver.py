@@ -243,18 +243,42 @@ def check_action_seq(warehouse, action_seq):
     '''
     
     ##         "INSERT YOUR CODE HERE"
+    # boxes
     
     for action in range(len(action_seq)):
         if action_seq[action] == 'Left':
             warehouse.worker = (warehouse.worker[0] - 1, warehouse.worker[1])
+            last_action = 'Left'
         elif action_seq[action] == 'Right':
             warehouse.worker = (warehouse.worker[0] + 1, warehouse.worker[1])
+            last_action = 'Right'
         elif action_seq[action] == 'Up':
             warehouse.worker = (warehouse.worker[0], warehouse.worker[1] - 1)
+            last_action = 'Up'
         elif action_seq[action] == 'Down':
             warehouse.worker = (warehouse.worker[0], warehouse.worker[1] + 1)
+            last_action = 'Down'
+        
+        #boxes 
+        failure_boxes = []
+        for i in range(2):
+            if last_action == 'Left':
+                failure_boxes.append((warehouse.worker[0] + i, warehouse.worker[1]))
+            elif last_action == 'Right':
+                failure_boxes.append((warehouse.worker[0] - i, warehouse.worker[1]))
+            elif last_action == 'Up':
+                failure_boxes.append((warehouse.worker[0], warehouse.worker[1] - i))
+            elif last_action == 'Down':
+                failure_boxes.append((warehouse.worker[0], warehouse.worker[1] + i))
         if warehouse.worker in warehouse.walls:
             return "Failure"
+
+        if failure_boxes[0] in warehouse.boxes and failure_boxes[1] in warehouse.boxes:
+            return "Failure"
+        if failure_boxes[0] in warehouse.boxes:
+            warehouse.boxes.remove(failure_boxes[0])
+            warehouse.boxes.append(failure_boxes[1])
+        
     return warehouse.__str__()
 
 

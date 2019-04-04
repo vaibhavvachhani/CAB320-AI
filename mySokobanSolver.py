@@ -36,7 +36,7 @@ def my_team():
     
     '''
 #    return [ (1234567, 'Ada', 'Lovelace'), (1234568, 'Grace', 'Hopper'), (1234569, 'Eva', 'Tardos') ]
-    return [ (9889132, 'Nok Hei Heidi', 'Cheng'), (10003665, 'Jayden', 'Dao'), (9796134, 'Vaibhav', Vachhani)]
+    return [ (9889132, 'Nok Hei Heidi', 'Cheng'), (10003665, 'Jayden', 'Dao'), (9796134, 'Vaibhav', 'Vachhani')]
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def surrounded_by_walls(walls, x_size, y_size, coord):
@@ -124,15 +124,13 @@ def taboo_cells(warehouse):
     walls = warehouse.walls
     walls_X, walls_Y = zip(*walls)
     x_size, y_size = 1+max(walls_X), 1+max(walls_Y)
+
     # making a list of tuples with all coords
-    new_x = []
-    new_y = []
+    new_coords = []
     for i in range(y_size):
         for j in range(x_size):
-            new_x.append(j)
-            new_y.append(i)
-    new_coords = list(zip(new_x, new_y))
-
+            new_coords.append((j, i))
+        
     # filtering out walls
     for i in range(len(walls)):
         new_coords.remove(walls[i])
@@ -206,6 +204,8 @@ class SokobanPuzzle(search.Problem):
     
     def __init__(self, warehouse):
         self.warehouse = warehouse
+        self.targets = warehouse.targets
+        self.worker = warehouse.worker
 
     def actions(self, state):
         """
@@ -215,8 +215,7 @@ class SokobanPuzzle(search.Problem):
         'self.allow_taboo_push' and 'self.macro' should be tested to determine
         what type of list of actions is to be returned.
         """
-        raise NotImplementedError
-
+        return list(tuple(len(state)-1))
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 def check_action_seq(warehouse, action_seq):
@@ -245,7 +244,18 @@ def check_action_seq(warehouse, action_seq):
     
     ##         "INSERT YOUR CODE HERE"
     
-    raise NotImplementedError()
+    for action in range(len(action_seq)):
+        if action_seq[action] == 'Left':
+            warehouse.worker = (warehouse.worker[0] - 1, warehouse.worker[1])
+        elif action_seq[action] == 'Right':
+            warehouse.worker = (warehouse.worker[0] + 1, warehouse.worker[1])
+        elif action_seq[action] == 'Up':
+            warehouse.worker = (warehouse.worker[0], warehouse.worker[1] - 1)
+        elif action_seq[action] == 'Down':
+            warehouse.worker = (warehouse.worker[0], warehouse.worker[1] + 1)
+        if warehouse.worker in warehouse.walls:
+            return "Failure"
+    return warehouse.__str__()
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

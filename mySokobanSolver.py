@@ -24,7 +24,8 @@ import search
 
 import sokoban
 
-
+#global variable
+taboo_cells_list = []
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -99,6 +100,7 @@ def walls_around(walls, coord):
     if (x, y+1) in walls:
         walls_around.append((x, y+1))
     return walls_around
+
 def taboo_cells(warehouse):
     '''  
     Identify the taboo cells of a warehouse. A cell inside a warehouse is 
@@ -157,6 +159,7 @@ def taboo_cells(warehouse):
             if walls_around_list[0][0] != walls_around_list[1][0] and walls_around_list[0][1] != walls_around_list[1][1]:
                 taboo_coords.append(walkable_coords[i])
 
+    taboo_cells_list = taboo_coords
     # putting everything in output
     output = [[" "] * x_size for y in range(y_size)]
     for (x,y) in walls:
@@ -201,12 +204,17 @@ class SokobanPuzzle(search.Problem):
     #     complete this class. For example, a 'result' function is needed
     #     to satisfy the interface of 'search.Problem'.
 
-    
-    def __init__(self, warehouse):
-        self.warehouse = warehouse
-        self.targets = warehouse.targets
-        self.worker = warehouse.worker
+    # by default does not allow push of boxes on taboo cells
+    allow_taboo_push = False 
 
+    # use elementary actions if self.macro == False
+    macro = False 
+
+    def __init__(self, warehouse):
+        self.initial = warehouse.worker
+        self.goal = warehouse.targets
+        self.warehouse = warehouse
+        
     def actions(self, state):
         """
         Return the list of actions that can be executed in the given state.
@@ -214,8 +222,37 @@ class SokobanPuzzle(search.Problem):
         As specified in the header comment of this class, the attributes
         'self.allow_taboo_push' and 'self.macro' should be tested to determine
         what type of list of actions is to be returned.
+
+        When self.allow_taboo_push is set to True, the 'actions' function should 
+        return all possible legal moves including those that move a box on a taboo 
+        cell. If self.allow_taboo_push is set to False, those moves should not be
+        included in the returned list of actions.
+    
+        If self.macro is set True, the 'actions' function should return 
+        macro actions. If self.macro is set False, the 'actions' function should 
+        return elementary actions.
         """
-        return list(tuple(len(state)-1))
+        list_of_movements = [(state[0]-1, state[1]), (state[0]+1, state[1]), (state[0], state[1]-1), (state[0], state[1]+1)]
+        for wall in range(len(self.warehouse.walls)):
+            thisWall = self.warehouse.walls[wall]
+            if thisWall in list_of_movements:
+                list_of_movements.remove(thisWall)
+                
+        if self.allow_taboo_push == False:
+            for cell in range(len(taboo_cells_list)):
+                this_cell = taboo_cells_list[cell]
+                if this_cell in list_of_movements:
+                    list_of_movements.remove(this_cell)
+        
+        if self.macro:
+            for move in range(len(list_of_movements)):
+                movement = list_of_movements[move]
+                if movement not in self.warehouse.boxes:
+                    list_of_movements.remove(movement)
+        return list_of_movements
+    
+    def result(self, state, action):
+        return None
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 def check_action_seq(warehouse, action_seq):
@@ -300,8 +337,22 @@ def solve_sokoban_elem(warehouse):
     '''
     
     ##         "INSERT YOUR CODE HERE"
-    
-    raise NotImplementedError()
+    elements = []
+    boxes = warehouse.boxes
+    worker = warehouse.worker
+    walls = warehouse.walls
+    targets = warehouse.targets
+    not_in_box = True
+    for target in range(len(targets)):
+        if targets[target] not in boxes:
+            not_in_box = False  
+    if not_in_box == True:
+        return elements   
+    problem = SokobanPuzzle(warehouse) 
+    queue = search.PriorityQueue()  
+    print(search.tree_search(problem, queue)) 
+    print(problem.goal)  
+    return elements
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

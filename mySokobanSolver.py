@@ -5,17 +5,14 @@
 
 The functions and classes defined in this module will be called by a marker script.
 You should complete the functions and classes according to their specified interfaces.
-
 You are not allowed to change the defined interfaces.
 That is, changing the formal parameters of a function will break the
 interface and triggers to a fail for the test of your code.
 
 # by default does not allow push of boxes on taboo cells
 SokobanPuzzle.allow_taboo_push = False
-
 # use elementary actions if self.macro == False
 SokobanPuzzle.macro = False
-
 '''
 
 # you have to use the 'search.py' file provided
@@ -24,7 +21,8 @@ import search
 
 import sokoban
 
-
+#global variable
+taboo_cells_list = []
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -99,6 +97,7 @@ def walls_around(walls, coord):
     if (x, y+1) in walls:
         walls_around.append((x, y+1))
     return walls_around
+
 def taboo_cells(warehouse):
     '''
     Identify the taboo cells of a warehouse. A cell inside a warehouse is
@@ -113,7 +112,6 @@ def taboo_cells(warehouse):
              wall are taboo if none of these cells is a target.
 
     @param warehouse: a Warehouse object
-
     @return
        A string representing the puzzle with only the wall cells marked with
        an '#' and the taboo cells marked with an 'X'.
@@ -124,14 +122,12 @@ def taboo_cells(warehouse):
     walls = warehouse.walls
     walls_X, walls_Y = zip(*walls)
     x_size, y_size = 1+max(walls_X), 1+max(walls_Y)
+
     # making a list of tuples with all coords
-    new_x = []
-    new_y = []
+    new_coords = []
     for i in range(y_size):
         for j in range(x_size):
-            new_x.append(j)
-            new_y.append(i)
-    new_coords = list(zip(new_x, new_y))
+            new_coords.append((j, i))
 
     # filtering out walls
     for i in range(len(walls)):
@@ -159,6 +155,7 @@ def taboo_cells(warehouse):
             if walls_around_list[0][0] != walls_around_list[1][0] and walls_around_list[0][1] != walls_around_list[1][1]:
                 taboo_coords.append(walkable_coords[i])
 
+    taboo_cells_list = taboo_coords
     # putting everything in output
     output = [[" "] * x_size for y in range(y_size)]
     for (x,y) in walls:
@@ -175,7 +172,6 @@ class SokobanPuzzle(search.Problem):
     An instance of the class 'SokobanPuzzle' represents a Sokoban puzzle.
     An instance contains information about the walls, the targets, the boxes
     and the worker.
-
     Your implementation should be fully compatible with the search functions of
     the provided module 'search.py'.
 
@@ -203,8 +199,15 @@ class SokobanPuzzle(search.Problem):
     #     complete this class. For example, a 'result' function is needed
     #     to satisfy the interface of 'search.Problem'.
 
+    # by default does not allow push of boxes on taboo cells
+    allow_taboo_push = False
+
+    # use elementary actions if self.macro == False
+    macro = False
 
     def __init__(self, warehouse):
+        self.initial = warehouse.worker
+        self.goal = warehouse.targets
         self.warehouse = warehouse
 
     def actions(self, state):
@@ -214,9 +217,36 @@ class SokobanPuzzle(search.Problem):
         As specified in the header comment of this class, the attributes
         'self.allow_taboo_push' and 'self.macro' should be tested to determine
         what type of list of actions is to be returned.
-        """
-        raise NotImplementedError
+        When self.allow_taboo_push is set to True, the 'actions' function should
+        return all possible legal moves including those that move a box on a taboo
+        cell. If self.allow_taboo_push is set to False, those moves should not be
+        included in the returned list of actions.
 
+        If self.macro is set True, the 'actions' function should return
+        macro actions. If self.macro is set False, the 'actions' function should
+        return elementary actions.
+        """
+        list_of_movements = [(state[0]-1, state[1]), (state[0]+1, state[1]), (state[0], state[1]-1), (state[0], state[1]+1)]
+        for wall in range(len(self.warehouse.walls)):
+            thisWall = self.warehouse.walls[wall]
+            if thisWall in list_of_movements:
+                list_of_movements.remove(thisWall)
+
+        if self.allow_taboo_push == False:
+            for cell in range(len(taboo_cells_list)):
+                this_cell = taboo_cells_list[cell]
+                if this_cell in list_of_movements:
+                    list_of_movements.remove(this_cell)
+
+        if self.macro:
+            for move in range(len(list_of_movements)):
+                movement = list_of_movements[move]
+                if movement not in self.warehouse.boxes:
+                    list_of_movements.remove(movement)
+        return list_of_movements
+
+    def result(self, state, action):
+        return None
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 def check_action_seq(warehouse, action_seq):
@@ -229,7 +259,6 @@ def check_action_seq(warehouse, action_seq):
       - an action is legal even if it pushes a box onto a taboo cell.
 
     @param warehouse: a valid Warehouse object
-
     @param action_seq: a sequence of legal actions.
            For example, ['Left', 'Down', Down','Right', 'Up', 'Down']
 
@@ -244,8 +273,43 @@ def check_action_seq(warehouse, action_seq):
     '''
 
     ##         "INSERT YOUR CODE HERE"
+    # boxes
 
-    raise NotImplementedError()
+    for action in range(len(action_seq)):
+        if action_seq[action] == 'Left':
+            warehouse.worker = (warehouse.worker[0] - 1, warehouse.worker[1])
+            last_action = 'Left'
+        elif action_seq[action] == 'Right':
+            warehouse.worker = (warehouse.worker[0] + 1, warehouse.worker[1])
+            last_action = 'Right'
+        elif action_seq[action] == 'Up':
+            warehouse.worker = (warehouse.worker[0], warehouse.worker[1] - 1)
+            last_action = 'Up'
+        elif action_seq[action] == 'Down':
+            warehouse.worker = (warehouse.worker[0], warehouse.worker[1] + 1)
+            last_action = 'Down'
+
+        #boxes
+        failure_boxes = []
+        for i in range(2):
+            if last_action == 'Left':
+                failure_boxes.append((warehouse.worker[0] + i, warehouse.worker[1]))
+            elif last_action == 'Right':
+                failure_boxes.append((warehouse.worker[0] - i, warehouse.worker[1]))
+            elif last_action == 'Up':
+                failure_boxes.append((warehouse.worker[0], warehouse.worker[1] - i))
+            elif last_action == 'Down':
+                failure_boxes.append((warehouse.worker[0], warehouse.worker[1] + i))
+        if warehouse.worker in warehouse.walls:
+            return "Failure"
+
+        if failure_boxes[0] in warehouse.boxes and failure_boxes[1] in warehouse.boxes:
+            return "Failure"
+        if failure_boxes[0] in warehouse.boxes:
+            warehouse.boxes.remove(failure_boxes[0])
+            warehouse.boxes.append(failure_boxes[1])
+
+    return warehouse.__str__()
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -256,7 +320,6 @@ def solve_sokoban_elem(warehouse):
     the puzzle defined in a file.
 
     @param warehouse: a valid Warehouse object
-
     @return
         If puzzle cannot be solved return the string 'Impossible'
         If a solution was found, return a list of elementary actions that solves
@@ -266,8 +329,22 @@ def solve_sokoban_elem(warehouse):
     '''
 
     ##         "INSERT YOUR CODE HERE"
-
-    raise NotImplementedError()
+    elements = []
+    boxes = warehouse.boxes
+    worker = warehouse.worker
+    walls = warehouse.walls
+    targets = warehouse.targets
+    not_in_box = True
+    for target in range(len(targets)):
+        if targets[target] not in boxes:
+            not_in_box = False
+    if not_in_box == True:
+        return elements
+    problem = SokobanPuzzle(warehouse)
+    queue = search.PriorityQueue()
+    print(search.tree_search(problem, queue))
+    print(problem.goal)
+    return elements
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

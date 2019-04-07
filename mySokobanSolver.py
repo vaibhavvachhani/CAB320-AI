@@ -342,6 +342,56 @@ def solve_sokoban_macro(warehouse):
 
     ##         "INSERT YOUR CODE HERE"
 
-    raise NotImplementedError()
+    #raise NotImplementedError()
+
+    print(warehouse)
+
+    output = []
+    wcol, wrow = warehouse.worker
+
+    for bcol, brow in warehouse.boxes:
+        for tcol, trow in warehouse.targets:
+            while((brow, bcol) != (trow, tcol)):
+
+                if wrow < brow:
+                    marco = 'Down'
+                    wrow = brow
+                    wcol = bcol
+                    brow += 1
+
+                elif wrow > brow:
+                    marco = 'Up'
+                    wrow = brow
+                    wcol = bcol
+                    brow -= 1
+
+                if wcol < bcol:
+                    marco = 'Right'
+                    wrow = brow
+                    wcol = bcol
+                    bcol += 1
+                elif wcol > bcol:
+                    marco = 'Left'
+                    wrow = brow
+                    wcol = bcol
+                    bcol -= 1
+
+                print("worker", (wrow, wcol))
+                print("box", (brow, bcol))
+                print("targets", (trow, tcol))
+
+                worker = ((wrow, wcol), marco)
+                output.append(worker)
+
+    return output
+
+
+
+
+
+
+
+
+
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -42,7 +42,7 @@ def surrounded_by_walls(walls, x_size, y_size, coord):
     left = (x-1, y)
     right = (x+1, y)
     top = (x, y-1)
-    down = x, y+1)
+    down = (x, y+1)
     example x,y = (2,2)
     '''
     (x, y) = coord
@@ -204,9 +204,10 @@ class SokobanPuzzle(search.Problem):
     # use elementary actions if self.macro == False
     macro = False
 
-    def __init__(self, warehouse):
-        self.initial = warehouse.worker
-        self.goal = warehouse.targets
+    def __init__(self, warehouse, initial, goal=None):
+        search.Problem.__init__(self, initial, goal)
+        self.goal = goal
+        self.initial = initial
         self.warehouse = warehouse
         
     def actions(self, state):
@@ -228,36 +229,45 @@ class SokobanPuzzle(search.Problem):
         return elementary actions.
         """
         if state != None:
-            list_of_movements = [(state[0]-1, state[1]), (state[0]+1, state[1]), (state[0], state[1]-1), (state[0], state[1]+1)]
+            list_of_movements_coords = [(state[0]-1, state[1]), (state[0]+1, state[1]), (state[0], state[1]-1), (state[0], state[1]+1)]
+            list_of_movements = ['Left', 'Right', 'Top', 'Down']
             for wall in range(len(self.warehouse.walls)):
                 thisWall = self.warehouse.walls[wall]
-                if thisWall in list_of_movements:
-                    list_of_movements.remove(thisWall)
-            if self.allow_taboo_push == False:
+                if thisWall in list_of_movements_coords:
+                    thisIndex = list_of_movements_coords.index(thisWall)
+                    list_of_movements_coords.pop(thisIndex)
+                    list_of_movements.pop(thisIndex)
+            if self.allow_taboo_push:
                 for cell in range(len(taboo_cells_list)):
                     this_cell = taboo_cells_list[cell]
-                    if this_cell in list_of_movements:
-                        list_of_movements.remove(this_cell)
+                    if this_cell in list_of_movements_coords:
+                        thisIndex = list_of_movements_coords.index(this_cell)
+                        list_of_movements_coords.pop(thisIndex)
+                        list_of_movements.pop(thisIndex)
             if self.macro:
-                for move in range(len(list_of_movements)):
-                    movement = list_of_movements[move]
+                for move in range(len(list_of_movements_coords)):
+                    movement = list_of_movements_coords[move]
                     if movement not in self.warehouse.boxes:
-                        list_of_movements.remove(movement)
+                        list_of_movements_coords.pop(move)
+                        list_of_movements.pop(move)
             return list_of_movements
         return []
 
     def result(self, state, action):
-        if state != None:
-            if action == 'Left':
-                state = (state[0] - 1, state[1])
-            elif action == 'Right':
-                state = (state[0] + 1, state[1])
-            elif action == 'Up':
-                state = (state[0], state[1] - 1)
-            elif action == 'Down':
-                state = (state[0], state[1] + 1)
-            return state
-        return None
+        if action == 'Left':
+            return (state[0]-1, state[1])
+        elif action == 'Right':
+            return (state[0]+1, state[1])
+        elif action == 'Top':
+            return (state[0], state[1]-1)
+        elif action == 'Down':
+            return (state[0], state[1]+1)
+
+    def goal_test(self, state):
+        """Return True if the state is a goal. The default method compares the
+        state to self.goal, as specified in the constructor. Override this
+        method if checking against a single self.goal is not enough."""
+        return state == self.goal
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 def check_action_seq(warehouse, action_seq):
@@ -347,10 +357,26 @@ def solve_sokoban_elem(warehouse):
             not_in_box = False
     if not_in_box == True:
         return elements
-    problem = SokobanPuzzle(warehouse)
-    queue = search.PriorityQueue()
-    print(search.tree_search(problem, queue))
-    print(problem.goal)
+    
+    # don't forget to add multiple targets
+
+    # I am finding the distance between the box to target first then find the distance between the worker and the second last movement of the previous thing
+    problem0 = SokobanPuzzle(warehouse, boxes[0], targets[0])
+    queue0 = search.FIFOQueue()
+    box_node = search.graph_search(problem0, queue0)
+
+
+    if box_node != None:
+        goal_coord = box_node.path()[-2].state
+        problem1 = SokobanPuzzle(warehouse, worker, goal_coord)
+        queue1 = search.FIFOQueue()
+        final_node = search.graph_search(problem1, queue1)
+        if final_node == None:
+            elements.append('Impossible')
+        else:
+            elements.extend(final_node.solution())
+    else:
+        elements.append('Impossible')
     return elements
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

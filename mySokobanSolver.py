@@ -288,29 +288,29 @@ def can_go_there(warehouse, dst):
 
     canmove = True
 
-    moveX, moveY = warehouse.worker
+    col, row = warehouse.worker
     print(warehouse)
     for box in warehouse.boxes:
 
-        while ((moveX, moveY) != dst):
+        while ((row, col) != dst):
 
-            if (dst[0] < moveX):
-                moveX = moveX - 1
-            elif (dst[0] > moveX):
-                moveX = moveX + 1
+            if (dst[0] < row):
+                row = row - 1
+            elif (dst[0] > row):
+                row = row + 1
 
-            if (dst[1] < moveY):
-                moveY = moveY - 1
-            elif (dst[1] > moveY):
-                moveY = moveY + 1
+            if (dst[1] < col):
+                col = col - 1
+            elif (dst[1] > col):
+                col = col + 1
 
-            print("worker", (moveX , moveY))
+            print("worker", (row , col))
             print("box", box)
             print("dst" , dst)
             print("\n")
 
 
-            if (box[0] == moveX) & (box[1] == moveY):
+            if (box[1] == row) & (box[0] == col):
                 return False
             else:
                 canmove = True

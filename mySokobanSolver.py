@@ -209,7 +209,12 @@ class SokobanPuzzle(search.Problem):
         self.goal = warehouse.targets
         
     def actions_macro(self, state) :
-
+        workerState = state[0]
+        boxesState = state[1:]
+        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        directions_words = ['Left', 'Right', 'Up', 'Down']
+        for boxState in boxesState:
+            
         return None
     
     def actions_elementary(self, state):
@@ -464,6 +469,7 @@ class SokobanCanGoPuzzle(search.Problem):
         method if checking against a single self.goal is not enough."""
         print("goal", self.goal)
         return state == self.goal
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def can_go_there(warehouse, dst):
     '''
@@ -510,7 +516,6 @@ def solve_sokoban_macro(warehouse):
 
     ##         "INSERT YOUR CODE HERE"
 
-    #raise NotImplementedError()
 
     print(warehouse)
 

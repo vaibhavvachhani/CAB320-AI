@@ -206,8 +206,9 @@ class SokobanPuzzle(search.Problem):
 
     def __init__(self, warehouse, initial, goal=None):
         search.Problem.__init__(self, initial, goal)
+        self.worker = initial[0]
+        self.boxes = initial[1:]
         self.goal = goal
-        self.initial = initial
         self.warehouse = warehouse
         
     def actions(self, state):

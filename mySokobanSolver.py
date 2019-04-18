@@ -153,7 +153,6 @@ def taboo_cells(warehouse):
             walls_around_list = walls_around(walls, walkable_coords[i])
             if walls_around_list[0][0] != walls_around_list[1][0] and walls_around_list[0][1] != walls_around_list[1][1]:
                 taboo_coords.append(walkable_coords[i])
-
     taboo_cells_list = taboo_coords
     # putting everything in output
     output = [[" "] * x_size for y in range(y_size)]
@@ -204,13 +203,39 @@ class SokobanPuzzle(search.Problem):
     # use elementary actions if self.macro == False
     macro = False
 
-    def __init__(self, warehouse, initial, goal=None):
-        search.Problem.__init__(self, initial, goal)
-        self.worker = initial[0]
-        self.boxes = initial[1:]
-        self.goal = goal
+    def __init__(self, warehouse):
         self.warehouse = warehouse
+        self.initial = (warehouse.worker,) + tuple(warehouse.boxes) 
+        self.goal = warehouse.targets
         
+    def actions_macro(self, state) :
+
+        return None
+    
+    def actions_elementary(self, state):
+        workerState = state[0]
+        boxesState = state[1:]
+        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        directions_words = ['Left', 'Right', 'Up', 'Down']
+        actions = []
+        for id, direction in enumerate(directions):
+            new_worker_x = workerState[0] + direction[0]
+            new_worker_y = workerState[1] + direction[1]
+            new_worker = (new_worker_x, new_worker_y)
+            if new_worker in self.warehouse.walls:
+                continue
+            if new_worker in boxesState:
+                new_box_x = new_worker_x + direction[0]
+                new_box_y = new_worker_y + direction[1]
+                new_box = (new_box_x, new_box_y)
+                if new_box in self.warehouse.walls or new_box in boxesState:
+                    continue
+                if not self.allow_taboo_push:
+                     if new_box in taboo_cells_list:
+                         continue
+            actions.append(directions_words[id])
+        return actions
+
     def actions(self, state):
         """
         Return the list of actions that can be executed in the given state.
@@ -226,49 +251,38 @@ class SokobanPuzzle(search.Problem):
     
         If self.macro is set True, the 'actions' function should return 
         macro actions. If self.macro is set False, the 'actions' function should 
-
         return elementary actions.
         """
-        if state != None:
-            list_of_movements_coords = [(state[0]-1, state[1]), (state[0]+1, state[1]), (state[0], state[1]-1), (state[0], state[1]+1)]
-            list_of_movements = ['Left', 'Right', 'Top', 'Down']
-            for wall in range(len(self.warehouse.walls)):
-                thisWall = self.warehouse.walls[wall]
-                if thisWall in list_of_movements_coords:
-                    thisIndex = list_of_movements_coords.index(thisWall)
-                    list_of_movements_coords.pop(thisIndex)
-                    list_of_movements.pop(thisIndex)
-            if self.allow_taboo_push:
-                for cell in range(len(taboo_cells_list)):
-                    this_cell = taboo_cells_list[cell]
-                    if this_cell in list_of_movements_coords:
-                        thisIndex = list_of_movements_coords.index(this_cell)
-                        list_of_movements_coords.pop(thisIndex)
-                        list_of_movements.pop(thisIndex)
-            if self.macro:
-                for move in range(len(list_of_movements_coords)):
-                    movement = list_of_movements_coords[move]
-                    if movement not in self.warehouse.boxes:
-                        list_of_movements_coords.pop(move)
-                        list_of_movements.pop(move)
-            return list_of_movements
-        return []
+        if self.macro == False:
+            return self.actions_elementary(state)
 
     def result(self, state, action):
-        if action == 'Left':
-            return (state[0]-1, state[1])
-        elif action == 'Right':
-            return (state[0]+1, state[1])
-        elif action == 'Top':
-            return (state[0], state[1]-1)
-        elif action == 'Down':
-            return (state[0], state[1]+1)
+        workerState = state[0]
+        boxesState = list(state[1:])
+        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        directions_words = ['Left', 'Right', 'Up', 'Down']
+        for wordId, direction_word in enumerate(directions_words):
+            if action == direction_word:
+                workerState_X = workerState[0] + directions[wordId][0]
+                workerState_Y = workerState[1] + directions[wordId][1]
+                new_workerState = (workerState_X, workerState_Y)
+                if new_workerState in boxesState:
+                    boxState_X = workerState_X + directions[wordId][0]
+                    boxState_Y = workerState_Y + directions[wordId][1]
+                    new_boxState = (boxState_X, boxState_Y)
+                    boxesState.remove(new_workerState)
+                    boxesState.append(new_boxState)
+                    return (new_workerState,) + tuple(boxesState)
+                return (new_workerState,) + tuple(boxesState)
 
     def goal_test(self, state):
         """Return True if the state is a goal. The default method compares the
         state to self.goal, as specified in the constructor. Override this
         method if checking against a single self.goal is not enough."""
-        return state == self.goal
+        for thisGoal in self.warehouse.targets:
+            if thisGoal not in state[1:]:
+                return False
+        return True
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 def check_action_seq(warehouse, action_seq):
@@ -322,7 +336,6 @@ def check_action_seq(warehouse, action_seq):
                 failure_boxes.append((warehouse.worker[0], warehouse.worker[1] + i))
         if warehouse.worker in warehouse.walls:
             return "Failure"
-
         if failure_boxes[0] in warehouse.boxes and failure_boxes[1] in warehouse.boxes:
             return "Failure"
         if failure_boxes[0] in warehouse.boxes:
@@ -347,41 +360,111 @@ def solve_sokoban_elem(warehouse):
     '''
 
     ##         "INSERT YOUR CODE HERE"
-    elements = []
-    boxes = warehouse.boxes
-    worker = warehouse.worker
-    walls = warehouse.walls
-    targets = warehouse.targets
-    not_in_box = True
-    for target in range(len(targets)):
-        if targets[target] not in boxes:
-            not_in_box = False
-    if not_in_box == True:
-        return elements
     
     # don't forget to add multiple targets
 
     # I am finding the distance between the box to target first then find the distance between the worker and the second last movement of the previous thing
-    problem0 = SokobanPuzzle(warehouse, boxes[0], targets[0])
-    queue0 = search.FIFOQueue()
-    box_node = search.graph_search(problem0, queue0)
-
-
-    if box_node != None:
-        goal_coord = box_node.path()[-2].state
-        problem1 = SokobanPuzzle(warehouse, worker, goal_coord)
-        queue1 = search.FIFOQueue()
-        final_node = search.graph_search(problem1, queue1)
-        if final_node == None:
-            elements.append('Impossible')
-        else:
-            elements.extend(final_node.solution())
+    problem = SokobanPuzzle(warehouse)
+    node = search.breadth_first_graph_search(problem)
+    if node == None:
+        return ['Impossible']
     else:
-        elements.append('Impossible')
-    return elements
+        return node.solution()
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+class SokobanCanGoPuzzle(search.Problem):
+    '''
+    An instance of the class 'SokobanPuzzle' represents a Sokoban puzzle.
+    An instance contains information about the walls, the targets, the boxes
+    and the worker.
+    Your implementation should be fully compatible with the search functions of
+    the provided module 'search.py'.
+
+    Each instance should have at least the following attributes
+    - self.allow_taboo_push
+    - self.macro
+
+    When self.allow_taboo_push is set to True, the 'actions' function should
+    return all possible legal moves including those that move a box on a taboo
+    cell. If self.allow_taboo_push is set to False, those moves should not be
+    included in the returned list of actions.
+
+    If self.macro is set True, the 'actions' function should return
+    macro actions. If self.macro is set False, the 'actions' function should
+    return elementary actions.
+
+
+    '''
+    #
+    #         "INSERT YOUR CODE HERE"
+    #
+    #     Revisit the sliding puzzle and the pancake puzzle for inspiration!
+    #
+    #     Note that you will need to add several functions to
+    #     complete this class. For example, a 'result' function is needed
+    #     to satisfy the interface of 'search.Problem'.
+
+    # by default does not allow push of boxes on taboo cells
+    allow_taboo_push = False
+
+    # use elementary actions if self.macro == False
+    macro = False
+
+    def __init__(self, goal, warehouse):
+        self.warehouse = warehouse
+        self.initial = warehouse.worker
+        self.goal = goal
+
+    def actions(self, state):
+        """
+        Return the list of actions that can be executed in the given state.
+
+        As specified in the header comment of this class, the attributes
+        'self.allow_taboo_push' and 'self.macro' should be tested to determine
+        what type of list of actions is to be returned.
+
+        When self.allow_taboo_push is set to True, the 'actions' function should 
+        return all possible legal moves including those that move a box on a taboo 
+        cell. If self.allow_taboo_push is set to False, those moves should not be
+        included in the returned list of actions.
+    
+        If self.macro is set True, the 'actions' function should return 
+        macro actions. If self.macro is set False, the 'actions' function should 
+        return elementary actions.
+        """
+        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        directions_words = ['Left', 'Right', 'Up', 'Down']
+        actions = []
+        for id, direction in enumerate(directions):
+            new_worker_x = state[0] + direction[0]
+            new_worker_y = state[1] + direction[1]
+            new_worker = (new_worker_x, new_worker_y)
+            if new_worker in self.warehouse.walls:
+                continue
+            if new_worker in self.warehouse.boxes:
+                continue
+            actions.append(directions_words[id])
+        return actions
+
+    def result(self, state, action):
+        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        directions_words = ['Left', 'Right', 'Up', 'Down']
+        for wordId, direction_word in enumerate(directions_words):
+            if action == direction_word:
+                workerState_X = state[0] + directions[wordId][0]
+                workerState_Y = state[1] + directions[wordId][1]
+                new_workerState = (workerState_X, workerState_Y)
+                return new_workerState
+                    
+
+    def goal_test(self, state):
+        """Return True if the state is a goal. The default method compares the
+        state to self.goal, as specified in the constructor. Override this
+        method if checking against a single self.goal is not enough."""
+        print("goal", self.goal)
+        return state == self.goal
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def can_go_there(warehouse, dst):
     '''
     Determine whether the worker can walk to the cell dst=(row,column)
@@ -395,39 +478,13 @@ def can_go_there(warehouse, dst):
     '''
 
     ##         "INSERT YOUR CODE HERE"
-    #raise NotImplementedError()
-
-    canmove = True
-
-    col, row = warehouse.worker
-    print(warehouse)
-    for box in warehouse.boxes:
-
-        while ((row, col) != dst):
-
-            if (dst[0] < row):
-                row = row - 1
-            elif (dst[0] > row):
-                row = row + 1
-
-            if (dst[1] < col):
-                col = col - 1
-            elif (dst[1] > col):
-                col = col + 1
-
-            print("worker", (row , col))
-            print("box", box)
-            print("dst" , dst)
-            print("\n")
-
-
-            if (box[1] == row) & (box[0] == col):
-                return False
-            else:
-                canmove = True
-        return canmove
-
-    print(dst)
+    dst = (dst[1], dst[0])
+    problem = SokobanCanGoPuzzle(dst, warehouse)
+    node = search.breadth_first_graph_search(problem)
+    if node == None:
+        return False
+    else:
+        return True
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

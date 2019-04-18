@@ -38,13 +38,12 @@ def my_team():
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def surrounded_by_walls(walls, x_size, y_size, coord):
+
     '''
-    left = (x-1, y)
-    right = (x+1, y)
-    top = (x, y-1)
-    down = (x, y+1)
-    example x,y = (2,2)
+    Identifies the areas which is walkable from the inticial state of the worker.
+
     '''
+
     (x, y) = coord
     left = right = top = bottom = False
     #finding left
@@ -73,6 +72,13 @@ def surrounded_by_walls(walls, x_size, y_size, coord):
         return True
 
 def number_of_walls_surrounded(walls, coord):
+    '''
+    returns if numbers of walls surrounded the coorinate
+
+    @param wall: warehouse walls object
+    @param coord: the state of the worker
+
+    '''
     (x, y) = coord
     number_of_walls = 0
     if (x-1, y) in walls:
@@ -86,6 +92,11 @@ def number_of_walls_surrounded(walls, coord):
     return number_of_walls
 
 def walls_around(walls, coord):
+    '''
+    @param walls: wall object
+    @param coord: the state of the worker
+
+    '''
     (x, y) = coord
     walls_around = []
     if (x-1, y) in walls:
@@ -118,7 +129,7 @@ def taboo_cells(warehouse):
        The returned string should NOT have marks for the worker, the targets,
        and the boxes.
     '''
-    ##         "INSERT YOUR CODE HERE"
+    # initialise the walls
     walls = warehouse.walls
     walls_X, walls_Y = zip(*walls)
     x_size, y_size = 1+max(walls_X), 1+max(walls_Y)
@@ -208,36 +219,47 @@ class SokobanPuzzle(search.Problem):
         self.initial = (warehouse.worker,) + tuple(warehouse.boxes) 
         self.goal = warehouse.targets
         
+    # define the actions
     def actions_macro(self, state) :
         workerState = state[0]
         boxesState = state[1:]
         directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
         directions_words = ['Left', 'Right', 'Up', 'Down']
         for boxState in boxesState:
-            
+            return "hi"
         return None
     
     def actions_elementary(self, state):
+        '''
+        define the current actions
+
+        @param state: the tuple coordinate of the worker and boxes
+
+        '''
         workerState = state[0]
         boxesState = state[1:]
         directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
         directions_words = ['Left', 'Right', 'Up', 'Down']
         actions = []
+        # checks if the working is going to collised into a wall or into another box
         for id, direction in enumerate(directions):
             new_worker_x = workerState[0] + direction[0]
             new_worker_y = workerState[1] + direction[1]
             new_worker = (new_worker_x, new_worker_y)
             if new_worker in self.warehouse.walls:
                 continue
+            # checks the box collision with the wall
             if new_worker in boxesState:
                 new_box_x = new_worker_x + direction[0]
                 new_box_y = new_worker_y + direction[1]
                 new_box = (new_box_x, new_box_y)
                 if new_box in self.warehouse.walls or new_box in boxesState:
                     continue
+                # checks if the box is in a taboo cell
                 if not self.allow_taboo_push:
                      if new_box in taboo_cells_list:
                          continue
+            # allows the move
             actions.append(directions_words[id])
         return actions
 
@@ -262,10 +284,19 @@ class SokobanPuzzle(search.Problem):
             return self.actions_elementary(state)
 
     def result(self, state, action):
+        '''
+        returns the state of the boxes and worker after action is performed
+
+        @param state: the current state of worker and boxes
+        @param action: a tuple of states of worker and boxes
+
+        '''
+
         workerState = state[0]
         boxesState = list(state[1:])
         directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
         directions_words = ['Left', 'Right', 'Up', 'Down']
+        # moves the worker to the 
         for wordId, direction_word in enumerate(directions_words):
             if action == direction_word:
                 workerState_X = workerState[0] + directions[wordId][0]
@@ -312,23 +343,19 @@ def check_action_seq(warehouse, action_seq):
                string returned by the method  Warehouse.__str__()
     '''
 
-    ##         "INSERT YOUR CODE HERE"
-    # boxes
-    for action in range(len(action_seq)):
-        if action_seq[action] == 'Left':
+    # checks the previous action of the boxes
+    for action in action_seq:
+        if action == 'Left':
             warehouse.worker = (warehouse.worker[0] - 1, warehouse.worker[1])
-            last_action = 'Left'
-        elif action_seq[action] == 'Right':
+        elif action == 'Right':
             warehouse.worker = (warehouse.worker[0] + 1, warehouse.worker[1])
-            last_action = 'Right'
-        elif action_seq[action] == 'Up':
+        elif action == 'Up':
             warehouse.worker = (warehouse.worker[0], warehouse.worker[1] - 1)
-            last_action = 'Up'
-        elif action_seq[action] == 'Down':
+        elif action == 'Down':
             warehouse.worker = (warehouse.worker[0], warehouse.worker[1] + 1)
-            last_action = 'Down'
 
-        #boxes
+        last_action = action_seq[-1]
+        # checks if there are adjacent boxes position
         failure_boxes = []
         for i in range(2):
             if last_action == 'Left':
@@ -339,8 +366,10 @@ def check_action_seq(warehouse, action_seq):
                 failure_boxes.append((warehouse.worker[0], warehouse.worker[1] - i))
             elif last_action == 'Down':
                 failure_boxes.append((warehouse.worker[0], warehouse.worker[1] + i))
+        # worker walks in wall
         if warehouse.worker in warehouse.walls:
             return "Failure"
+        # checks if they are adjenct
         if failure_boxes[0] in warehouse.boxes and failure_boxes[1] in warehouse.boxes:
             return "Failure"
         if failure_boxes[0] in warehouse.boxes:
@@ -453,6 +482,10 @@ class SokobanCanGoPuzzle(search.Problem):
         return actions
 
     def result(self, state, action):
+        '''
+        @param state: a tuple of the worker and boxes
+        @param action: a tuple of the action
+        '''
         directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
         directions_words = ['Left', 'Right', 'Up', 'Down']
         for wordId, direction_word in enumerate(directions_words):
@@ -483,7 +516,7 @@ def can_go_there(warehouse, dst):
       False otherwise
     '''
 
-    ##         "INSERT YOUR CODE HERE"
+    #checks if the action is valid
     dst = (dst[1], dst[0])
     problem = SokobanCanGoPuzzle(dst, warehouse)
     node = search.breadth_first_graph_search(problem)
@@ -513,9 +546,6 @@ def solve_sokoban_macro(warehouse):
         Otherwise return M a sequence of macro actions that solves the puzzle.
         If the puzzle is already in a goal state, simply return []
     '''
-
-    ##         "INSERT YOUR CODE HERE"
-
 
     print(warehouse)
 

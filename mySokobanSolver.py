@@ -398,8 +398,8 @@ class SokobanPuzzle(search.Problem):
                     continue
                 # checks if the box is in a taboo cell
                 if not self.allow_taboo_push:
-                     if new_box in taboo_cells_list:
-                         continue
+                    if new_box in taboo_cells_list:
+                        continue
             # allows the move
             actions.append(directions_words[id])
         return actions

@@ -119,45 +119,99 @@ def has_target(walls_around_list, walkable_coord, warehouse):
     walls = warehouse.walls
     targets = warehouse.targets
     wall = walls_around_list[0]
-    wall_x = abs(wall[0] - walkable_coord[0])
-    wall_y = abs(wall[1] - walkable_coord[1]) 
+    abs_wall_x = abs(wall[0] - walkable_coord[0])
+    abs_wall_y = abs(wall[1] - walkable_coord[1]) 
+    abs_wall_diff = (abs_wall_x, abs_wall_y)
+
+    wall_x = wall[0] - walkable_coord[0]
+    wall_y = wall[1] - walkable_coord[1]
     wall_diff = (wall_x, wall_y)
-    if wall_diff == (1, 0):
+    if abs_wall_diff == (1, 0):
         # difference on the X axis
-        near_wall_coord = walkable_coord
+        near_wall_coord = (walkable_coord[0], walkable_coord[1] + 1)
         while near_wall_coord not in walls:
+            num_of_walls = number_of_walls_surrounded(walls, near_wall_coord)
+            if num_of_walls == 0:
+                return True
+            elif num_of_walls == 1:
+                this_wall_diff_x = walls_around(walls, near_wall_coord)[0][0] - near_wall_coord[0]
+                this_wall_diff_y = walls_around(walls, near_wall_coord)[0][1] - near_wall_coord[1]
+                this_wall_diff = (this_wall_diff_x, this_wall_diff_y)
+                if this_wall_diff != wall_diff:
+                    return True
+            if near_wall_coord in targets:
+                return True
             near_wall_coord = (near_wall_coord[0], near_wall_coord[1] + 1)
-            if not number_of_walls_surrounded(walls, near_wall_coord):
+
+
+        near_wall_coord = (walkable_coord[0], walkable_coord[1] - 1)
+        while near_wall_coord not in walls: 
+            num_of_walls = number_of_walls_surrounded(walls, near_wall_coord)
+            if num_of_walls == 0:
                 return True
+            elif num_of_walls == 1:
+                this_wall_diff_x = walls_around(walls, near_wall_coord)[0][0] - near_wall_coord[0]
+                this_wall_diff_y = walls_around(walls, near_wall_coord)[0][1] - near_wall_coord[1]
+                this_wall_diff = (this_wall_diff_x, this_wall_diff_y)
+                if this_wall_diff != wall_diff:
+                    return True
             if near_wall_coord in targets:
                 return True
-
-        near_wall_coord = walkable_coord
-        while near_wall_coord not in walls:
             near_wall_coord = (near_wall_coord[0], near_wall_coord[1] - 1)
-            if not number_of_walls_surrounded(walls, near_wall_coord):
-                return True
-            if near_wall_coord in targets:
-                return True
 
-    elif wall_diff == (0, 1):
+    elif abs_wall_diff == (0, 1):
         # difference on the Y axis
-        near_wall_coord = walkable_coord
+        near_wall_coord = (walkable_coord[0] + 1, walkable_coord[1])
         while near_wall_coord not in walls:
+            num_of_walls = number_of_walls_surrounded(walls, near_wall_coord)
+            if num_of_walls == 0:
+                return True
+            elif num_of_walls == 1:
+                this_wall_diff_x = walls_around(walls, near_wall_coord)[0][0] - near_wall_coord[0]
+                this_wall_diff_y = walls_around(walls, near_wall_coord)[0][1] - near_wall_coord[1]
+                this_wall_diff = (this_wall_diff_x, this_wall_diff_y)
+                if this_wall_diff != wall_diff:
+                    return True
+            if near_wall_coord in targets: 
+                return True
             near_wall_coord = (near_wall_coord[0] + 1, near_wall_coord[1])
-            if not number_of_walls_surrounded(walls, near_wall_coord):
-                return True
-            if near_wall_coord in targets:
-                return True
 
-        near_wall_coord = walkable_coord
+        near_wall_coord = (walkable_coord[0] - 1, walkable_coord[1])
         while near_wall_coord not in walls:
-            near_wall_coord = (near_wall_coord[0] - 1, near_wall_coord[1])
-            if not number_of_walls_surrounded(walls, near_wall_coord):
+            num_of_walls = number_of_walls_surrounded(walls, near_wall_coord)
+            if num_of_walls == 0:
                 return True
+            elif num_of_walls == 1:
+                this_wall_diff_x = walls_around(walls, near_wall_coord)[0][0] - near_wall_coord[0]
+                this_wall_diff_y = walls_around(walls, near_wall_coord)[0][1] - near_wall_coord[1]
+                this_wall_diff = (this_wall_diff_x, this_wall_diff_y)
+                if this_wall_diff != wall_diff:
+                    return True
             if near_wall_coord in targets:
                 return True
+            near_wall_coord = (near_wall_coord[0] - 1, near_wall_coord[1])
+    return False
   
+def number_of_taboo_surrounded(taboos, coord):
+    '''
+    return number of walls around the worker
+
+    @param wall: warehouse walls object
+    @param coord: the state of the worker
+
+    '''
+    (x, y) = coord
+    number_of_taboos = 0
+    if (x-1, y) in taboos:
+        number_of_taboos += 1
+    if (x+1, y) in taboos:
+        number_of_taboos += 1
+    if (x, y-1) in taboos:
+        number_of_taboos += 1
+    if (x, y+1) in taboos:
+        number_of_taboos += 1
+    return number_of_taboos
+
 def taboo_cells(warehouse):
     '''
     Identify the taboo cells of a warehouse. A cell inside a warehouse is
@@ -211,12 +265,19 @@ def taboo_cells(warehouse):
         walls_around_list = walls_around(walls, walkable_coord)
         if number_of_walls > 2:
             taboo_coords.append(walkable_coord)
-        elif number_of_walls == 2:
-            if walls_around_list[0][0] != walls_around_list[1][0] and walls_around_list[0][1] != walls_around_list[1][1]:
-                taboo_coords.append(walkable_coord)
         elif number_of_walls == 1:
             if not has_target(walls_around_list, walkable_coord, warehouse):
                 taboo_coords.append(walkable_coord)
+        elif number_of_walls == 2:
+            if walls_around_list[0][0] != walls_around_list[1][0] and walls_around_list[0][1] != walls_around_list[1][1]:
+                taboo_coords.append(walkable_coord)
+
+    for walkable_coord in walkable_coords:
+        number_of_walls = number_of_walls_surrounded(walls, walkable_coord)
+        walls_around_list = walls_around(walls, walkable_coord)
+        number_of_taboos = number_of_taboo_surrounded(taboo_coords, walkable_coord)
+        if number_of_walls == 2 and number_of_taboos == 2:
+            taboo_coords.append(walkable_coord)
     global taboo_cells_list
     taboo_cells_list = taboo_coords
     # putting everything in output
@@ -517,7 +578,7 @@ def solve_sokoban_elem(warehouse):
         for box in boxes:
             shortest = 10000000
             for goal in goals:
-                # uses the manharran distance
+                # uses the manhattan distance
                 xdist = abs(box[0] - goal[0])
                 ydist = abs(box[1] - goal[1])
                 distance = xdist + ydist

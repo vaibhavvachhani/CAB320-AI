@@ -314,14 +314,6 @@ class SokobanPuzzle(search.Problem):
 
 
     '''
-    #
-    #         "INSERT YOUR CODE HERE"
-    #
-    #     Revisit the sliding puzzle and the pancake puzzle for inspiration!
-    #
-    #     Note that you will need to add several functions to
-    #     complete this class. For example, a 'result' function is needed
-    #     to satisfy the interface of 'search.Problem'.
 
     def __init__(self, warehouse):
         self.warehouse = warehouse
@@ -479,8 +471,8 @@ class SokobanPuzzle(search.Problem):
         '''
         returns the state of the boxes and worker after action is performed
 
-        @param state: the current state of worker and boxes
-        @param action: a tuple of states of worker and boxes
+        @param state: the tuple of states of worker and boxes
+        @param action: the direction of movement
 
         '''
         if not self.macro:
@@ -571,6 +563,7 @@ def solve_sokoban_elem(warehouse):
     
     problem = SokobanPuzzle(warehouse)
 
+    # Heuristic for the search
     def h(node):
         boxes = node.state[1:]
         goals = warehouse.targets
@@ -587,13 +580,21 @@ def solve_sokoban_elem(warehouse):
             total = total + shortest
         return total
 
-    #node = search.depth_first_graph_search(problem)
-    #node = search.breadth_first_graph_search(problem)
+    # Heuristic
     node = search.astar_graph_search(problem, h)
-    #node = search.uniform_cost_search(problem)
-    #node = search.breadth_first_tree_search(problem)
+    #node = search.astar_tree_search(problem, h)
 
-    # search function cant find a solution
+    
+    #node = search.breadth_first_graph_search(problem)
+    #node = search.breadth_first_tree_search(problem)
+    #node = search.depth_first_graph_search(problem)
+    #node = search.depth_first_tree_search(problem)
+
+    #node = search.uniform_cost_search(problem)
+    #node = search.depth_limited_search(problem)
+    #node = search.iterative_deepening_search(problem)
+
+
     if node == None:
         return ["Impossible"]
     return node.solution()
@@ -602,36 +603,13 @@ def solve_sokoban_elem(warehouse):
 
 class SokobanCanGoPuzzle(search.Problem):
     '''
-    An instance of the class 'SokobanPuzzle' represents a Sokoban puzzle.
+    An instance of the class 'SokobanCanGoPuzzle' represents a Sokoban puzzle.
     An instance contains information about the walls, the targets, the boxes
     and the worker.
     Your implementation should be fully compatible with the search functions of
     the provided module 'search.py'.
 
-    Each instance should have at least the following attributes
-    - self.allow_taboo_push
-    - self.macro
-
-    When self.allow_taboo_push is set to True, the 'actions' function should
-    return all possible legal moves including those that move a box on a taboo
-    cell. If self.allow_taboo_push is set to False, those moves should not be
-    included in the returned list of actions.
-
-    If self.macro is set True, the 'actions' function should return
-    macro actions. If self.macro is set False, the 'actions' function should
-    return elementary actions.
-
-
     '''
-    #
-    #         "INSERT YOUR CODE HERE"
-    #
-    #     Revisit the sliding puzzle and the pancake puzzle for inspiration!
-    #
-    #     Note that you will need to add several functions to
-    #     complete this class. For example, a 'result' function is needed
-    #     to satisfy the interface of 'search.Problem'.
-
 
     def __init__(self, goal, warehouse):
         self.warehouse = warehouse
@@ -640,20 +618,10 @@ class SokobanCanGoPuzzle(search.Problem):
 
     def actions(self, state):
         """
-        Return the list of actions that can be executed in the given state.
+        return action in the direction of the cooridinate
 
-        As specified in the header comment of this class, the attributes
-        'self.allow_taboo_push' and 'self.macro' should be tested to determine
-        what type of list of actions is to be returned.
+        @param state: the tuple coordinate of the worker and boxes
 
-        When self.allow_taboo_push is set to True, the 'actions' function should 
-        return all possible legal moves including those that move a box on a taboo 
-        cell. If self.allow_taboo_push is set to False, those moves should not be
-        included in the returned list of actions.
-    
-        If self.macro is set True, the 'actions' function should return 
-        macro actions. If self.macro is set False, the 'actions' function should 
-        return elementary actions.
         """
         directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
         directions_words = ['Left', 'Right', 'Up', 'Down']
@@ -734,7 +702,7 @@ def solve_sokoban_macro(warehouse):
         Otherwise return M a sequence of macro actions that solves the puzzle.
         If the puzzle is already in a goal state, simply return []
     '''
-    
+    # Heuristic for the search
     problem = SokobanPuzzle(warehouse)
     problem.macro = True
     def h(node):
@@ -752,15 +720,22 @@ def solve_sokoban_macro(warehouse):
             total = total + shortest
         return total
 
-    #node = search.depth_first_graph_search(problem)
-    #node = search.breadth_first_graph_search(problem)
+    # Heuristic
     node = search.astar_graph_search(problem, h)
-    #node = search.uniform_cost_search(problem)
-    #node = search.breadth_first_tree_search(problem)
-        
-   
-    
+    #node = search.astar_tree_search(problem, h)
+
+
     #node = search.breadth_first_graph_search(problem)
+    #node = search.breadth_first_tree_search(problem)
+    #node = search.depth_first_graph_search(problem)
+    #node = search.depth_first_tree_search(problem)
+
+    #node = search.uniform_cost_search(problem)
+    #node = search.depth_limited_search(problem)
+    #node = search.iterative_deepening_search(problem)
+
+    
+        
     if node == None:
         return ["Impossible"]
     return node.solution()

@@ -21,7 +21,7 @@ if __name__ == "__main__":
     result = mySokobanSolver.solve_sokoban_macro(wh)
     t1 = time.time()
 
-    print('End time: {:.6f} seconds'.format(t1-t0))
+    print ('Macro Solver took {:.6f} seconds'.format(t1-t0))
     print("Solution: {0}".format(result))
     print("Solution Len: {0} \n".format(len(result)))
     
@@ -35,6 +35,6 @@ if __name__ == "__main__":
     result = mySokobanSolver.solve_sokoban_elem(wh)
     t1 = time.time()
 
-    print('End time: {:.6f} seconds'.format(t1-t0))
+    print ('Elem Solver took {:.6f} seconds'.format(t1-t0))
     print("Solution: {0}".format(result))
     print("Solution Len: {0} \n".format(len(result)))

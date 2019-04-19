@@ -20,10 +20,6 @@ SokobanPuzzle.macro = False
 import search
 
 import sokoban
-
-#global variable
-taboo_cells_list = []
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
@@ -109,6 +105,46 @@ def walls_around(walls, coord):
         walls_around.append((x, y+1))
     return walls_around
 
+def has_target(walls_around_list, walkable_coord, warehouse):
+    walls = warehouse.walls
+    targets = warehouse.targets
+    wall = walls_around_list[0]
+    wall_x = abs(wall[0] - walkable_coord[0])
+    wall_y = abs(wall[1] - walkable_coord[1]) 
+    wall_diff = (wall_x, wall_y)
+    if wall_diff == (1, 0):
+        near_wall_coord = walkable_coord
+        while near_wall_coord not in walls:
+            near_wall_coord = (near_wall_coord[0], near_wall_coord[1] + 1)
+            if not number_of_walls_surrounded(walls, near_wall_coord):
+                return True
+            if near_wall_coord in targets:
+                return True
+
+        near_wall_coord = walkable_coord
+        while near_wall_coord not in walls:
+            near_wall_coord = (near_wall_coord[0], near_wall_coord[1] - 1)
+            if not number_of_walls_surrounded(walls, near_wall_coord):
+                return True
+            if near_wall_coord in targets:
+                return True
+    elif wall_diff == (0, 1):
+        near_wall_coord = walkable_coord
+        while near_wall_coord not in walls:
+            near_wall_coord = (near_wall_coord[0] + 1, near_wall_coord[1])
+            if not number_of_walls_surrounded(walls, near_wall_coord):
+                return True
+            if near_wall_coord in targets:
+                return True
+
+        near_wall_coord = walkable_coord
+        while near_wall_coord not in walls:
+            near_wall_coord = (near_wall_coord[0] - 1, near_wall_coord[1])
+            if not number_of_walls_surrounded(walls, near_wall_coord):
+                return True
+            if near_wall_coord in targets:
+                return True
+  
 def taboo_cells(warehouse):
     '''
     Identify the taboo cells of a warehouse. A cell inside a warehouse is
@@ -131,6 +167,7 @@ def taboo_cells(warehouse):
     '''
     # initialise the walls
     walls = warehouse.walls
+    targets = warehouse.targets
     walls_X, walls_Y = zip(*walls)
     x_size, y_size = 1+max(walls_X), 1+max(walls_Y)
 
@@ -156,14 +193,18 @@ def taboo_cells(warehouse):
 
     #finding taboo coords
     taboo_coords = []
-    for i in range(len(walkable_coords)):
-        number_of_walls = number_of_walls_surrounded(walls, walkable_coords[i])
+    for walkable_coord in walkable_coords:
+        number_of_walls = number_of_walls_surrounded(walls, walkable_coord)
+        walls_around_list = walls_around(walls, walkable_coord)
         if number_of_walls > 2:
-            taboo_coords.append(walkable_coords[i])
+            taboo_coords.append(walkable_coord)
         elif number_of_walls == 2:
-            walls_around_list = walls_around(walls, walkable_coords[i])
             if walls_around_list[0][0] != walls_around_list[1][0] and walls_around_list[0][1] != walls_around_list[1][1]:
-                taboo_coords.append(walkable_coords[i])
+                taboo_coords.append(walkable_coord)
+        elif number_of_walls == 1:
+            if not has_target(walls_around_list, walkable_coord, warehouse):
+                taboo_coords.append(walkable_coord)
+    global taboo_cells_list
     taboo_cells_list = taboo_coords
     # putting everything in output
     output = [[" "] * x_size for y in range(y_size)]
@@ -216,30 +257,30 @@ class SokobanPuzzle(search.Problem):
         self.allow_taboo_push = False
         # use elementary actions if self.macro == False
         self.macro = False
-        
+        taboo_cells(warehouse)
     # define the actions
     def actions_macro(self, state):
         workerState = state[0]
         boxesState = state[1:]
-        directions_after = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-        directions_before = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+        directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
         directions_words = ['Left', 'Right', 'Up', 'Down']
 
         actions = []
         for boxState in boxesState:
-            for dId, direction in enumerate(directions_before):
+            for dId, direction in enumerate(directions):
                 before_box_x = boxState[0] + direction[0]
                 before_box_y = boxState[1] + direction[1]
                 before_box_state = (before_box_x, before_box_y)
-                after_box_x = boxState[0] + directions_after[dId][0]
-                after_box_y = boxState[1] + directions_after[dId][1]
+                after_box_x = boxState[0] - direction[0]
+                after_box_y = boxState[1] - direction[1]
                 after_box_state = (after_box_x, after_box_y)
                 if after_box_state in self.warehouse.walls or before_box_state in self.warehouse.walls:
                     continue
                 if after_box_state in boxesState or before_box_state in boxesState:
                     continue
-                if after_box_state in taboo_cells_list:
-                    continue
+                if not self.allow_taboo_push:
+                    if after_box_state in taboo_cells_list:
+                        continue
                 temp_warehouse = self.warehouse.copy(workerState, boxesState)
                 if can_go_there(temp_warehouse, (before_box_state[1], before_box_state[0])):
                     actions.append(((boxState[1], boxState[0]), directions_words[dId]))
@@ -301,6 +342,7 @@ class SokobanPuzzle(search.Problem):
             return self.actions_elementary(state)
         else:
             return self.actions_macro(state)
+
     def macro_result(self, state, action):
         workerState = (action[0][1], action[0][0])
         boxesState = list(state[1:])
@@ -333,11 +375,7 @@ class SokobanPuzzle(search.Problem):
                     new_boxState = (boxState_X, boxState_Y)
                     boxesState.remove(new_workerState)
                     boxesState.append(new_boxState)
-                    self.warehouse.worker = new_workerState
-                    self.warehouse.boxes = boxesState
                     return (new_workerState,) + tuple(boxesState)
-                self.warehouse.worker = new_workerState
-                self.warehouse.boxes = boxesState
                 return (new_workerState,) + tuple(boxesState)
 
     def result(self, state, action):

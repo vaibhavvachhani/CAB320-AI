@@ -479,20 +479,26 @@ def solve_sokoban_elem(warehouse):
     # I am finding the distance between the box to target first then find the distance between the worker and the second last movement of the previous thing
     problem = SokobanPuzzle(warehouse)
 
-    def h(warehouse):
-        boxes = problem.initial[1:]
-        goals = problem.goal
+    def h(node):
+        boxes = node.state[1:]
+        goals = warehouse.targets
+        total = 0
         for box in boxes:
+            shortest = 10000000
             for goal in goals:
                 xdist = abs(box[0] - goal[0])
                 ydist = abs(box[1] - goal[1])
                 distance = xdist + ydist
-                if distance == 0:
-                    distance = 1
-                
-        return distance
+                if shortest == None or distance < shortest:
+                    shortest = distance
+            total = total + shortest
+        return total
 
+    #node = search.depth_first_graph_search(problem)
+    #node = search.breadth_first_graph_search(problem)
     node = search.astar_graph_search(problem, h)
+    #node = search.uniform_cost_search(problem)
+    #node = search.breadth_first_tree_search(problem)
 
     if node == None:
         return ['Impossible']
@@ -637,7 +643,30 @@ def solve_sokoban_macro(warehouse):
     '''
     problem = SokobanPuzzle(warehouse)
     problem.macro = True
-    node = search.breadth_first_graph_search(problem)
+    def h(node):
+        boxes = node.state[1:]
+        goals = warehouse.targets
+        total = 0
+        for box in boxes:
+            shortest = 10000000
+            for goal in goals:
+                xdist = abs(box[0] - goal[0])
+                ydist = abs(box[1] - goal[1])
+                distance = xdist + ydist
+                if shortest == None or distance < shortest:
+                    shortest = distance
+            total = total + shortest
+        return total
+
+    #node = search.depth_first_graph_search(problem)
+    #node = search.breadth_first_graph_search(problem)
+    node = search.astar_graph_search(problem, h)
+    #node = search.uniform_cost_search(problem)
+    #node = search.breadth_first_tree_search(problem)
+        
+   
+    
+    #node = search.breadth_first_graph_search(problem)
     if node == None:
         return ["Impossible"]
     return node.solution()

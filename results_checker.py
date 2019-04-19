@@ -6,29 +6,35 @@ import csv
 from sokoban import Warehouse
 
 if __name__ == "__main__":
+
+    
     num = int(input("Warehouse Num: "))
     problem_file = "./warehouses/warehouse_{:02d}.txt".format(num)
+
+    # Test marco solver
     
     wh = Warehouse()
     wh.load_warehouse(problem_file)
-
-    start_time = time.process_time()
-    result = mySokobanSolver.solve_sokoban_macro(wh)
-    end_time = time.process_time()
-
+    print(wh)
     print("Macro Solver")
-    print("End Time: " + str(end_time - start_time))
-    print("Solution: " + str(result))
-    print("Solution Len: " + str(len(result)))
+    t0 = time.time()
+    result = mySokobanSolver.solve_sokoban_macro(wh)
+    t1 = time.time()
+
+    print('End time: {:.6f} seconds'.format(t1-t0))
+    print("Solution: {0}".format(result))
+    print("Solution Len: {0} \n".format(len(result)))
+    
+    
+    # Test element solver
     
     wh = Warehouse()
     wh.load_warehouse(problem_file)
-
-    start_time = time.process_time()
+    print("Element Solver")
+    t0 = time.time()
     result = mySokobanSolver.solve_sokoban_elem(wh)
-    end_time = time.process_time()
+    t1 = time.time()
 
-    print("Elem Solver")
-    print("End Time: " + str(end_time - start_time))
-    print("Solution: " + str(result))
-    print("Solution Len: " + str(len(result)))
+    print('End time: {:.6f} seconds'.format(t1-t0))
+    print("Solution: {0}".format(result))
+    print("Solution Len: {0} \n".format(len(result)))

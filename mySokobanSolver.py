@@ -36,7 +36,7 @@ def my_team():
 def surrounded_by_walls(walls, x_size, y_size, coord):
 
     '''
-    Identifies the areas which is walkable from the inticial state of the worker.
+    Identifies the areas which is walkable from the intisial state of the worker.
 
     '''
 
@@ -69,7 +69,7 @@ def surrounded_by_walls(walls, x_size, y_size, coord):
 
 def number_of_walls_surrounded(walls, coord):
     '''
-    returns if numbers of walls surrounded the coorinate
+    return number of walls around the worker
 
     @param wall: warehouse walls object
     @param coord: the state of the worker
@@ -89,6 +89,8 @@ def number_of_walls_surrounded(walls, coord):
 
 def walls_around(walls, coord):
     '''
+    return walls coordinate around the worker
+
     @param walls: wall object
     @param coord: the state of the worker
 
@@ -106,6 +108,14 @@ def walls_around(walls, coord):
     return walls_around
 
 def has_target(walls_around_list, walkable_coord, warehouse):
+    '''
+    return boolean if walls around the coordinate
+
+    @param walls_around_list: coordinate of walls around list
+    @param walkable_coord: coordinates which is walkable
+    @param warehouse: a Warehouse object
+
+    '''
     walls = warehouse.walls
     targets = warehouse.targets
     wall = walls_around_list[0]
@@ -113,6 +123,7 @@ def has_target(walls_around_list, walkable_coord, warehouse):
     wall_y = abs(wall[1] - walkable_coord[1]) 
     wall_diff = (wall_x, wall_y)
     if wall_diff == (1, 0):
+        # difference on the X axis
         near_wall_coord = walkable_coord
         while near_wall_coord not in walls:
             near_wall_coord = (near_wall_coord[0], near_wall_coord[1] + 1)
@@ -128,7 +139,9 @@ def has_target(walls_around_list, walkable_coord, warehouse):
                 return True
             if near_wall_coord in targets:
                 return True
+
     elif wall_diff == (0, 1):
+        # difference on the Y axis
         near_wall_coord = walkable_coord
         while near_wall_coord not in walls:
             near_wall_coord = (near_wall_coord[0] + 1, near_wall_coord[1])
@@ -258,8 +271,15 @@ class SokobanPuzzle(search.Problem):
         # use elementary actions if self.macro == False
         self.macro = False
         taboo_cells(warehouse)
+    
     # define the actions
     def actions_macro(self, state):
+        '''
+        return action as a direction in the (x, y) coordinate for macro
+
+        @param state: coordinate of the worker and boxes
+
+        '''
         workerState = state[0]
         boxesState = state[1:]
         directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
@@ -268,9 +288,11 @@ class SokobanPuzzle(search.Problem):
         actions = []
         for boxState in boxesState:
             for dId, direction in enumerate(directions):
+                # moves boxes in the before state
                 before_box_x = boxState[0] + direction[0]
                 before_box_y = boxState[1] + direction[1]
                 before_box_state = (before_box_x, before_box_y)
+                # moves boxes in the after state
                 after_box_x = boxState[0] - direction[0]
                 after_box_y = boxState[1] - direction[1]
                 after_box_state = (after_box_x, after_box_y)
@@ -289,7 +311,7 @@ class SokobanPuzzle(search.Problem):
             
     def actions_elementary(self, state):
         '''
-        define the current actions
+        return action as a direction in the (x, y) coordinate for element
 
         @param state: the tuple coordinate of the worker and boxes
 
@@ -344,11 +366,18 @@ class SokobanPuzzle(search.Problem):
             return self.actions_macro(state)
 
     def macro_result(self, state, action):
+        '''
+        return state the state after with actions for marco
+
+        @param state: the tuple coordinate of the worker and boxes
+        @param action: the direction of an action for the worker
+
+        '''
         workerState = (action[0][1], action[0][0])
         boxesState = list(state[1:])
         directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
         directions_words = ['Left', 'Right', 'Up', 'Down']
-        # moves the worker to the 
+        # moves the worker and boxes in the direction of the action
         for wordId, direction_word in enumerate(directions_words):
             if action[1] == direction_word:
                 boxState_X = workerState[0] + directions[wordId][0]
@@ -359,11 +388,18 @@ class SokobanPuzzle(search.Problem):
                 return (workerState,) + tuple(boxesState)
                 
     def elem_result(self, state, action):
+        '''
+        return state the state after with actions for element
+
+        @param state: the tuple coordinate of the worker and boxes
+        @param action: the direction of an action for the worker
+        
+        '''
         workerState = state[0]
         boxesState = list(state[1:])
         directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
         directions_words = ['Left', 'Right', 'Up', 'Down']
-        # moves the worker to the 
+        # moves the worker and boxes in the direction of the action
         for wordId, direction_word in enumerate(directions_words):
             if action == direction_word:
                 workerState_X = workerState[0] + directions[wordId][0]
@@ -471,12 +507,7 @@ def solve_sokoban_elem(warehouse):
             For example, ['Left', 'Down', Down','Right', 'Up', 'Down']
             If the puzzle is already in a goal state, simply return []
     '''
-
-    ##         "INSERT YOUR CODE HERE"
     
-    # don't forget to add multiple targets
-
-    # I am finding the distance between the box to target first then find the distance between the worker and the second last movement of the previous thing
     problem = SokobanPuzzle(warehouse)
 
     def h(node):
@@ -486,6 +517,7 @@ def solve_sokoban_elem(warehouse):
         for box in boxes:
             shortest = 10000000
             for goal in goals:
+                # uses the manharran distance
                 xdist = abs(box[0] - goal[0])
                 ydist = abs(box[1] - goal[1])
                 distance = xdist + ydist
@@ -500,10 +532,10 @@ def solve_sokoban_elem(warehouse):
     #node = search.uniform_cost_search(problem)
     #node = search.breadth_first_tree_search(problem)
 
+    # search function cant find a solution
     if node == None:
-        return ['Impossible']
-    else:
-        return node.solution()
+        return ["Impossible"]
+    return node.solution()
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -641,6 +673,7 @@ def solve_sokoban_macro(warehouse):
         Otherwise return M a sequence of macro actions that solves the puzzle.
         If the puzzle is already in a goal state, simply return []
     '''
+    
     problem = SokobanPuzzle(warehouse)
     problem.macro = True
     def h(node):

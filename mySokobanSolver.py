@@ -208,27 +208,44 @@ class SokobanPuzzle(search.Problem):
     #     complete this class. For example, a 'result' function is needed
     #     to satisfy the interface of 'search.Problem'.
 
-    # by default does not allow push of boxes on taboo cells
-    allow_taboo_push = False
-
-    # use elementary actions if self.macro == False
-    macro = False
-
     def __init__(self, warehouse):
         self.warehouse = warehouse
         self.initial = (warehouse.worker,) + tuple(warehouse.boxes) 
         self.goal = warehouse.targets
+        # by default does not allow push of boxes on taboo cells
+        self.allow_taboo_push = False
+        # use elementary actions if self.macro == False
+        self.macro = False
         
     # define the actions
-    def actions_macro(self, state) :
+    def actions_macro(self, state):
         workerState = state[0]
         boxesState = state[1:]
-        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        directions_after = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        directions_before = [(1, 0), (-1, 0), (0, 1), (0, -1)]
         directions_words = ['Left', 'Right', 'Up', 'Down']
+
+        actions = []
         for boxState in boxesState:
-            return "hi"
-        return None
-    
+            for dId, direction in enumerate(directions_before):
+                before_box_x = boxState[0] + direction[0]
+                before_box_y = boxState[1] + direction[1]
+                before_box_state = (before_box_x, before_box_y)
+                after_box_x = boxState[0] + directions_after[dId][0]
+                after_box_y = boxState[1] + directions_after[dId][1]
+                after_box_state = (after_box_x, after_box_y)
+                if after_box_state in self.warehouse.walls or before_box_state in self.warehouse.walls:
+                    continue
+                if after_box_state in boxesState or before_box_state in boxesState:
+                    continue
+                if after_box_state in taboo_cells_list:
+                    continue
+                temp_warehouse = self.warehouse.copy(workerState, boxesState)
+                if can_go_there(temp_warehouse, (before_box_state[1], before_box_state[0])):
+                    actions.append(((boxState[1], boxState[0]), directions_words[dId]))
+        return actions
+
+            
     def actions_elementary(self, state):
         '''
         define the current actions
@@ -282,16 +299,24 @@ class SokobanPuzzle(search.Problem):
         """
         if self.macro == False:
             return self.actions_elementary(state)
-
-    def result(self, state, action):
-        '''
-        returns the state of the boxes and worker after action is performed
-
-        @param state: the current state of worker and boxes
-        @param action: a tuple of states of worker and boxes
-
-        '''
-
+        else:
+            return self.actions_macro(state)
+    def macro_result(self, state, action):
+        workerState = (action[0][1], action[0][0])
+        boxesState = list(state[1:])
+        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        directions_words = ['Left', 'Right', 'Up', 'Down']
+        # moves the worker to the 
+        for wordId, direction_word in enumerate(directions_words):
+            if action[1] == direction_word:
+                boxState_X = workerState[0] + directions[wordId][0]
+                boxState_Y = workerState[1] + directions[wordId][1]
+                new_boxState = (boxState_X, boxState_Y)
+                boxesState.remove(workerState)
+                boxesState.append(new_boxState)
+                return (workerState,) + tuple(boxesState)
+                
+    def elem_result(self, state, action):
         workerState = state[0]
         boxesState = list(state[1:])
         directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
@@ -308,9 +333,25 @@ class SokobanPuzzle(search.Problem):
                     new_boxState = (boxState_X, boxState_Y)
                     boxesState.remove(new_workerState)
                     boxesState.append(new_boxState)
+                    self.warehouse.worker = new_workerState
+                    self.warehouse.boxes = boxesState
                     return (new_workerState,) + tuple(boxesState)
+                self.warehouse.worker = new_workerState
+                self.warehouse.boxes = boxesState
                 return (new_workerState,) + tuple(boxesState)
 
+    def result(self, state, action):
+        '''
+        returns the state of the boxes and worker after action is performed
+
+        @param state: the current state of worker and boxes
+        @param action: a tuple of states of worker and boxes
+
+        '''
+        if not self.macro:
+            return self.elem_result(state, action)
+        else:
+            return self.macro_result(state, action)
     def goal_test(self, state):
         """Return True if the state is a goal. The default method compares the
         state to self.goal, as specified in the constructor. Override this
@@ -439,11 +480,6 @@ class SokobanCanGoPuzzle(search.Problem):
     #     complete this class. For example, a 'result' function is needed
     #     to satisfy the interface of 'search.Problem'.
 
-    # by default does not allow push of boxes on taboo cells
-    allow_taboo_push = False
-
-    # use elementary actions if self.macro == False
-    macro = False
 
     def __init__(self, goal, warehouse):
         self.warehouse = warehouse
@@ -500,7 +536,6 @@ class SokobanCanGoPuzzle(search.Problem):
         """Return True if the state is a goal. The default method compares the
         state to self.goal, as specified in the constructor. Override this
         method if checking against a single self.goal is not enough."""
-        print("goal", self.goal)
         return state == self.goal
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -523,6 +558,7 @@ def can_go_there(warehouse, dst):
     if node == None:
         return False
     else:
+        warehouse.worker = problem.goal
         return True
 
 
@@ -546,47 +582,12 @@ def solve_sokoban_macro(warehouse):
         Otherwise return M a sequence of macro actions that solves the puzzle.
         If the puzzle is already in a goal state, simply return []
     '''
-
-    print(warehouse)
-
-    output = []
-    wcol, wrow = warehouse.worker
-
-    for bcol, brow in warehouse.boxes:
-        for tcol, trow in warehouse.targets:
-            while((brow, bcol) != (trow, tcol)):
-
-                if wrow < brow:
-                    marco = 'Down'
-                    wrow = brow
-                    wcol = bcol
-                    brow += 1
-
-                elif wrow > brow:
-                    marco = 'Up'
-                    wrow = brow
-                    wcol = bcol
-                    brow -= 1
-
-                if wcol < bcol:
-                    marco = 'Right'
-                    wrow = brow
-                    wcol = bcol
-                    bcol += 1
-                elif wcol > bcol:
-                    marco = 'Left'
-                    wrow = brow
-                    wcol = bcol
-                    bcol -= 1
-
-                print("worker", (wrow, wcol))
-                print("box", (brow, bcol))
-                print("targets", (trow, tcol))
-
-                worker = ((wrow, wcol), marco)
-                output.append(worker)
-
-    return output
+    problem = SokobanPuzzle(warehouse)
+    problem.macro = True
+    node = search.breadth_first_graph_search(problem)
+    if node == None:
+        return ["Impossible"]
+    return node.solution()
 
 
 

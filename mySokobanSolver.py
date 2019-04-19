@@ -399,7 +399,30 @@ def solve_sokoban_elem(warehouse):
 
     # I am finding the distance between the box to target first then find the distance between the worker and the second last movement of the previous thing
     problem = SokobanPuzzle(warehouse)
-    node = search.breadth_first_graph_search(problem)
+
+
+
+    print(problem.initial[1:])
+    def h(warehouse):
+        boxes = problem.initial[1:]
+        goal = problem.goal
+        for box in boxes:
+            xdist = abs(box[0] - goal[0][0]) # assumes first goal
+            ydist = abs(box[1] - goal[0][1])
+            distance = xdist + ydist
+            if distance == 0:
+                distance = 1
+                
+        return distance
+
+
+    
+    node = search.astar_graph_search(problem, h)
+
+
+
+
+
     if node == None:
         return ['Impossible']
     else:
